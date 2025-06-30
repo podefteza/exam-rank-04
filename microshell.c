@@ -1,73 +1,81 @@
-#include <string.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <string.h>
+#include <stdlib.h>
 
-int	error(char *str)
+void	ft_puterror(char *str, char *arg)
 {
 	while (*str)
 		write(2, str++, 1);
-	return (1);
+	if (arg)
+		while(*arg)
+			write(2, arg++, 1);
+	write(2, "\n", 1);
 }
 
-int	cd(char **argv, int i)
+void ft_execute(char *argv[], int i, int tmp_fd, char *env[])
 {
-	if (i != 2)	// cd must be followed by exactly one argument
-		return (error("error: cd: bad arguments\n"));
-	else if (chdir(argv[1]) == -1)
-		return (error("error: cd: cannot change directory to "), error(argv[1]),
-			error("\n"));
-	return (0);
+	argv[i] = NULL; // null-terminate argv at current separator
+	dup2(tmp_fd, STDIN_FILENO); // set STDIN to previous pipe or original input
+	close(tmp_fd); // close unused input
+	execve(argv[0], argv, env);
+	ft_puterror("error: cannot execute ", argv[0]);
+	exit(1);
 }
 
-int	execute(char **argv, char **envp, int i)
-{
-	int	fd[2];	// fd[0] = read end of pipe; fd[1] = write end of pipe
-	int	status;
-	int	has_pipe;
-	int	pid;
-
-	has_pipe = argv[i] && !strcmp(argv[i], "|");	// check if it has pipe
-	if (!has_pipe && !strcmp(*argv, "cd"))	// no pipe and is cd
-		return (cd(argv, i));
-	if (has_pipe && pipe(fd) == -1)	// error in pipe
-		return (error("error: fatal\n"));
-	pid = fork();
-	if (pid == 0)	// child process
-	{
-		argv[i] = 0;	// null terminate to break the command list
-		if (has_pipe && (dup2(fd[1], 1) == -1 || close(fd[0]) == -1 || close(fd[1]) == -1))	// dup2 replaces stdout with pipe's write end; closes both ends of pipe after duplicating
-			return (error("error: fatal\n"));
-		if (!strcmp(*argv, "cd"))	// if it's cd (should not happen in a child process... added defensively)
-			return (cd(argv, i));
-		execve(*argv, argv, envp);
-		return (error("error: cannot execute "), error(*argv), error("\n"));
-	}
-	waitpid(pid, &status, 0);	// wait for the child process to finish
-	if (has_pipe && (dup2(fd[0], 0) == -1 || close(fd[0]) == -1 || close(fd[1]) == -1))	// parent process: redirect stdin to read from pipe, so the next command will receive the previous output
-		return (error("error: fatal\n"));
-	return (WIFEXITED(status) && WEXITSTATUS(status));
-}
-
-int	main(int argc, char **argv, char **envp)
+int	main(int argc, char **argv, char **env)
 {
 	int	i;
-	int	status;
+	int fd[2];
+	int tmp_fd;
+	(void)argc;
 
 	i = 0;
-	status = 0;
-	if (argc > 1)
+	tmp_fd = dup(STDIN_FILENO); // save original STDIN
+	while (argv[i] && argv[i + 1])
 	{
-		while (argv[i] && argv[++i])
+		argv = &argv[i + 1]; // move to the next command after the separator
+		i = 0;
+		while (argv[i] && strcmp(argv[i], ";") && strcmp(argv[i], "|")) // find the next separator
+			i++;
+		if (strcmp(argv[0], "cd") == 0) // builtin cd
 		{
-			argv = argv + i;	// skip past the current command and its separator
-			i = 0;
-			while (argv[i] && strcmp(argv[i], "|") && strcmp(argv[i], ";"))	// skip until NULL, pipe or semicolon
-				i++;
-			if (i)
-				status = execute(argv, envp, i);
+			if (i != 2)
+				ft_puterror("error: cd: bad arguments", NULL);
+			else if (chdir(argv[1]) != 0)
+				ft_puterror("error: cd: cannot change directory to ", argv[1]	);
+		}
+		else if (i != 0 && (argv[i] == NULL || strcmp(argv[i], ";") == 0)) // execute command without pipe (followed by ; or last command)
+		{
+			if (fork() == 0) // child process
+				ft_execute(argv, i, tmp_fd, env);
+			else // parent process
+			{
+				close(tmp_fd); // close input from previous pipe
+				while(waitpid(-1, NULL, WUNTRACED) != -1); // wait for all children
+				tmp_fd = dup(STDIN_FILENO); // reset input for the next command
+			}
+		}
+		else if(i != 0 && strcmp(argv[i], "|") == 0) // command with pipe
+		{
+			pipe(fd);
+			if (fork() == 0) // child process
+			{
+				dup2(fd[1], STDOUT_FILENO); // set STDOUT to pipe write end
+				close(fd[0]); // close unused read end
+				close(fd[1]); // close original write end
+				ft_execute(argv, i, tmp_fd, env);
+			}
+			else  // parent process
+			{
+				close(fd[1]); // close write end
+				close(tmp_fd); // close previous input
+				tmp_fd = fd[0]; // save read end for next command
+			}
 		}
 	}
-	return (status);
+	close(tmp_fd);
+	return (0);
 }
 
 /*Assignment name  : microshell
