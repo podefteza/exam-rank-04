@@ -23,6 +23,7 @@ void ft_execute(char **argv, int i, int tmp_fd, char **envp)
 	exit(1);
 }
 
+
 int	main(int argc, char **argv, char **envp)
 {
 	int	i;
@@ -77,6 +78,44 @@ int	main(int argc, char **argv, char **envp)
 	close(tmp_fd);
 	return (0);
 }
+
+/*
+EXEC:
+- null-terminate argv[i] to isolate the current command
+- set stdin to previous pipe read-end or original stdin using dup2
+- close tmp_fd (already duplicated)
+- execve to run the command with given argv and envp
+- if execve fails, print an error and exit
+
+MAIN:
+- save stdin by duplicating it into tmp_fd
+- loop while there are more arguments
+	- shift argv to start after last separator (argv = argv + i + 1)
+	- scan forward to next separator (| or ;) and store index in i
+- if command is "cd"
+	- if number of arguments != 2, print error
+	- else try to chdir(argv[1])
+		- if chdir fails, print error with the path
+- if command has no pipe (either end of argv or followed by ;)
+	- fork a child process
+		- in child: call ft_execute()
+	- in parent:
+		- close tmp_fd (was used as stdin)
+		- wait for all child processes
+		- reset tmp_fd = dup(STDIN_FILENO)
+- if command is followed by a pipe:
+	- create a pipe(fd)
+		- if pipe fails, print "error: fatal" and exit
+	- fork a child process
+		- in child:
+			- set stdout to pipe's write end (dup2)
+			- close pipe fds and tmp_fd
+			- exec the command
+		- in parent:
+			- close pipe write end and tmp_fd (old stdin)
+			- store pipe read end in tmp_fd for next command's input
+- after the loop, close tmp_fd to avoid fd leak
+*/
 
 /*Assignment name  : microshell
 Expected files   : microshell.c
