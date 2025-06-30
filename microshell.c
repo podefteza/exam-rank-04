@@ -13,17 +13,17 @@ void	ft_puterror(char *str, char *arg)
 	write(2, "\n", 1);
 }
 
-void ft_execute(char *argv[], int i, int tmp_fd, char *env[])
+void ft_execute(char **argv, int i, int tmp_fd, char **envp)
 {
 	argv[i] = NULL; // null-terminate argv at current separator
 	dup2(tmp_fd, STDIN_FILENO); // set STDIN to previous pipe or original input
 	close(tmp_fd); // close unused input
-	execve(argv[0], argv, env);
+	execve(argv[0], argv, envp);
 	ft_puterror("error: cannot execute ", argv[0]);
 	exit(1);
 }
 
-int	main(int argc, char **argv, char **env)
+int	main(int argc, char **argv, char **envp)
 {
 	int	i;
 	int fd[2];
@@ -34,7 +34,7 @@ int	main(int argc, char **argv, char **env)
 	tmp_fd = dup(STDIN_FILENO); // save original STDIN
 	while (argv[i] && argv[i + 1])
 	{
-		argv = &argv[i + 1]; // move to the next command after the separator
+		argv = argv + i + 1;
 		i = 0;
 		while (argv[i] && strcmp(argv[i], ";") && strcmp(argv[i], "|")) // find the next separator
 			i++;
@@ -43,12 +43,12 @@ int	main(int argc, char **argv, char **env)
 			if (i != 2)
 				ft_puterror("error: cd: bad arguments", NULL);
 			else if (chdir(argv[1]) != 0)
-				ft_puterror("error: cd: cannot change directory to ", argv[1]	);
+				ft_puterror("error: cd: cannot change directory to ", argv[1]);
 		}
 		else if (i != 0 && (argv[i] == NULL || strcmp(argv[i], ";") == 0)) // execute command without pipe (followed by ; or last command)
 		{
 			if (fork() == 0) // child process
-				ft_execute(argv, i, tmp_fd, env);
+				ft_execute(argv, i, tmp_fd, envp);
 			else // parent process
 			{
 				close(tmp_fd); // close input from previous pipe
@@ -64,9 +64,9 @@ int	main(int argc, char **argv, char **env)
 				dup2(fd[1], STDOUT_FILENO); // set STDOUT to pipe write end
 				close(fd[0]); // close unused read end
 				close(fd[1]); // close original write end
-				ft_execute(argv, i, tmp_fd, env);
+				ft_execute(argv, i, tmp_fd, envp);
 			}
-			else  // parent process
+			else // parent process
 			{
 				close(fd[1]); // close write end
 				close(tmp_fd); // close previous input
@@ -93,7 +93,7 @@ Write a program that will behave like executing a shell command
 	- if cd failed your program should print in STDERR "error: cd: cannot change directory to path_to_change" followed by a '\n' with path_to_change replaced by the argument to cd
 	- a cd command will never be immediately followed or preceded by a "|"
 - You don't need to manage any type of wildcards (*, ~ etc...)
-- You don't need to manage environment variables ($BLA ...)
+- You don't need to manage envpironment variables ($BLA ...)
 - If a system call, except execve and chdir, returns an error your program should immediatly print "error: fatal" in STDERR followed by a '\n' and the program should exit
 - If execve failed you should print "error: cannot execute executable_that_failed" in STDERR followed by a '\n' with executable_that_failed replaced with the path of the failed executable (It should be the first argument of execve)
 - Your program should be able to manage more than hundreds of "|" even if we limit the number of "open files" to less than 30.
@@ -105,7 +105,7 @@ i love my microshell
 $>
 
 Hints:
-Don't forget to pass the environment variable to execve
+Don't forget to pass the envpironment variable to execve
 
 Hints:
 Do not leak file descriptors!*/
