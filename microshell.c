@@ -11,7 +11,7 @@ int	error(char *str)
 
 int	cd(char **argv, int i)
 {
-	if (i != 2) // cd must be followed by exactly one argument
+	if (i != 2)	// cd must be followed by exactly one argument
 		return (error("error: cd: bad arguments\n"));
 	else if (chdir(argv[1]) == -1)
 		return (error("error: cd: cannot change directory to "), error(argv[1]),
@@ -21,29 +21,29 @@ int	cd(char **argv, int i)
 
 int	execute(char **argv, char **envp, int i)
 {
-	int	fd[2];  // fd[0] = read end of pipe; fd[1] = write end of pipe
+	int	fd[2];	// fd[0] = read end of pipe; fd[1] = write end of pipe
 	int	status;
 	int	has_pipe;
 	int	pid;
 
-	has_pipe = argv[i] && !strcmp(argv[i], "|");    // check if it has pipe
-	if (!has_pipe && !strcmp(*argv, "cd"))          // no pipe and is cd
+	has_pipe = argv[i] && !strcmp(argv[i], "|");	// check if it has pipe
+	if (!has_pipe && !strcmp(*argv, "cd"))	// no pipe and is cd
 		return (cd(argv, i));
-	if (has_pipe && pipe(fd) == -1)                 // error in pipe
+	if (has_pipe && pipe(fd) == -1)	// error in pipe
 		return (error("error: fatal\n"));
 	pid = fork();
-	if (pid == 0)                                       // child process
+	if (pid == 0)	// child process
 	{
 		argv[i] = 0;	// null terminate to break the command list
-		if (has_pipe && (dup2(fd[1], 1) == -1 || close(fd[0]) == -1 || close(fd[1]) == -1)) // dup2 replaces stdout with pipe's write end; closes both ends of pipe after duplicating
+		if (has_pipe && (dup2(fd[1], 1) == -1 || close(fd[0]) == -1 || close(fd[1]) == -1))	// dup2 replaces stdout with pipe's write end; closes both ends of pipe after duplicating
 			return (error("error: fatal\n"));
-		if (!strcmp(*argv, "cd"))   // if it's cd (should not happen in a child process... added defensively)
+		if (!strcmp(*argv, "cd"))	// if it's cd (should not happen in a child process... added defensively)
 			return (cd(argv, i));
 		execve(*argv, argv, envp);
 		return (error("error: cannot execute "), error(*argv), error("\n"));
 	}
 	waitpid(pid, &status, 0);	// wait for the child process to finish
-	if (has_pipe && (dup2(fd[0], 0) == -1 || close(fd[0]) == -1 || close(fd[1]) == -1)) // parent process: redirect stdin to read from pipe, so the next command will receive the previous output
+	if (has_pipe && (dup2(fd[0], 0) == -1 || close(fd[0]) == -1 || close(fd[1]) == -1))	// parent process: redirect stdin to read from pipe, so the next command will receive the previous output
 		return (error("error: fatal\n"));
 	return (WIFEXITED(status) && WEXITSTATUS(status));
 }
@@ -59,7 +59,7 @@ int	main(int argc, char **argv, char **envp)
 	{
 		while (argv[i] && argv[++i])
 		{
-			argv += i;	// skip past the current command and its separator
+			argv = argv + i;	// skip past the current command and its separator
 			i = 0;
 			while (argv[i] && strcmp(argv[i], "|") && strcmp(argv[i], ";"))	// skip until NULL, pipe or semicolon
 				i++;
