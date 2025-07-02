@@ -13,17 +13,51 @@ void	ft_puterror(char *str, char *arg)
 	write(2, "\n", 1);
 }
 
+/*
+- null-terminate argv[i]
+- set stdin to previous pipe read-end or original stdin
+- close tmp_fd (already duplicated)
+- execve to run the command
+*/
 void ft_execute(char **argv, int i, int tmp_fd, char **envp)
 {
-	argv[i] = NULL; // null-terminate argv at current separator
-	dup2(tmp_fd, STDIN_FILENO); // set STDIN to previous pipe or original input
-	close(tmp_fd); // close unused input
+	argv[i] = NULL;
+	dup2(tmp_fd, STDIN_FILENO);
+	close(tmp_fd);
 	execve(argv[0], argv, envp);
 	ft_puterror("error: cannot execute ", argv[0]);
 	exit(1);
 }
 
-
+/*
+- backup stdin
+- loop while there are more arguments
+	- shift argv to start after last separator (argv = argv + i + 1)
+	- scan forward to next separator (| or ;) and store index in i
+- if command is "cd"
+	- if number of arguments != 2, print error
+	- else try to chdir(argv[1])
+		- if chdir fails, print error with the path
+- if command has no pipe (either end of argv or followed by ;)
+	- fork a child process
+		- in child: call ft_execute()
+	- in parent:
+		- close tmp_fd (was used as stdin)
+		- wait for all child processes
+		- reset tmp_fd = dup(STDIN_FILENO)
+- if command is followed by a pipe:
+	- create a pipe(fd)
+		- if pipe fails, print "error: fatal" and exit
+	- fork a child process
+		- in child:
+			- set stdout to pipe's write end (dup2)
+			- close pipe fds and tmp_fd
+			- exec the command
+		- in parent:
+			- close pipe write end and tmp_fd (old stdin)
+			- store pipe read end in tmp_fd for next command's input
+- after the loop, close tmp_fd to avoid fd leak
+*/
 int	main(int argc, char **argv, char **envp)
 {
 	int	i;
@@ -32,7 +66,7 @@ int	main(int argc, char **argv, char **envp)
 	(void)argc;
 
 	i = 0;
-	tmp_fd = dup(STDIN_FILENO); // save original STDIN
+	tmp_fd = dup(STDIN_FILENO); // only time we use dup()
 	while (argv[i] && argv[i + 1])
 	{
 		argv = argv + i + 1;
@@ -79,43 +113,6 @@ int	main(int argc, char **argv, char **envp)
 	return (0);
 }
 
-/*
-EXEC:
-- null-terminate argv[i] to isolate the current command
-- set stdin to previous pipe read-end or original stdin using dup2
-- close tmp_fd (already duplicated)
-- execve to run the command with given argv and envp
-- if execve fails, print an error and exit
-
-MAIN:
-- save stdin by duplicating it into tmp_fd
-- loop while there are more arguments
-	- shift argv to start after last separator (argv = argv + i + 1)
-	- scan forward to next separator (| or ;) and store index in i
-- if command is "cd"
-	- if number of arguments != 2, print error
-	- else try to chdir(argv[1])
-		- if chdir fails, print error with the path
-- if command has no pipe (either end of argv or followed by ;)
-	- fork a child process
-		- in child: call ft_execute()
-	- in parent:
-		- close tmp_fd (was used as stdin)
-		- wait for all child processes
-		- reset tmp_fd = dup(STDIN_FILENO)
-- if command is followed by a pipe:
-	- create a pipe(fd)
-		- if pipe fails, print "error: fatal" and exit
-	- fork a child process
-		- in child:
-			- set stdout to pipe's write end (dup2)
-			- close pipe fds and tmp_fd
-			- exec the command
-		- in parent:
-			- close pipe write end and tmp_fd (old stdin)
-			- store pipe read end in tmp_fd for next command's input
-- after the loop, close tmp_fd to avoid fd leak
-*/
 
 /*Assignment name  : microshell
 Expected files   : microshell.c
