@@ -1,0 +1,16 @@
+# Compiled binaries
+*.o
+*.out
+*.a
+*.so
+
+# Executables
+vbc
+picoshell
+
+# VS Code
+.vscode/
+
+# Misc
+*.swp
+*.log
