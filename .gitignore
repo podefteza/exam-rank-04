@@ -4,10 +4,6 @@
 *.a
 *.so
 
-# Executables
-vbc
-picoshell
-
 # VS Code
 .vscode/
 
