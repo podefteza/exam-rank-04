@@ -35,10 +35,9 @@ int	picoshell(char **cmds[])
 		return (1);
 	while (cmds[i])
 	{
-		// If there is a next command, we need a pipe to connect to it.
-		if (cmds[i + 1] && pipe(fd) == -1)
+		if (cmds[i + 1] && pipe(fd) == -1) // If there is a next command, we need a pipe to connect to it.
 			return (close(in), 1);
-		else if (!cmds[i + 1])
+		else if (!cmds[i + 1]) // Last command in pipeline: no pipe needed; mark FDs invalid so dup2/close are skipped.
 			fd[0] = fd[1] = -1;
 		pid = fork();
 		if (pid < 0)
