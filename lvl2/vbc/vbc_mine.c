@@ -1,6 +1,26 @@
 #include <ctype.h>
 #include <stdio.h>
 
+/* TODO - VBC Flow:
+* - validate input (argc == 2)
+* - initialize global string pointer
+* - parse_expr(): handle addition (lowest precedence)
+*		- parse first term
+*		- while '+': skip operator, parse next term, accumulate result
+* - parse_term(): handle multiplication (medium precedence)
+*		- parse first factor
+*		- while '*': skip operator, parse next factor, accumulate result
+* - parse_factor(): handle parentheses and numbers (highest precedence)
+*		- if '(': skip '(', recursively parse expression, expect ')', skip ')'
+*		- else: parse single digit number
+* - parse_number(): validate and convert single digit
+*		- check if current char is digit, convert to int, advance pointer
+* - error handling:
+*		- parsing functions report errors immediately when encountered
+*		- main() only reports leftover characters after successful parsing
+* - return result or error code
+*/
+
 int		parse_factor(void);
 int		parse_expr(void);
 
