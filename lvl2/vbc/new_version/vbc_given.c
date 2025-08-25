@@ -1,4 +1,4 @@
-#include "vbc_new.h"
+#include "vbc.h"
 
 node	*new_node(node n)
 {
@@ -29,6 +29,7 @@ void	unexpected(char c)
 		printf("Unexpected token '%c'\n", c);
 	else
 		printf("Unexpected end of input\n");
+		//printf("Unexpected end of file\n"); // change "file" -> "input"
 }
 
 int	eval_tree(node *tree)

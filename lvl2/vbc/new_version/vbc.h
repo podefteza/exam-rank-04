@@ -1,5 +1,5 @@
-#ifndef VBC_NEW_H
-# define VBC_NEW_H
+#ifndef VBC_H
+# define VBC_H
 
 # include <ctype.h>
 # include <malloc.h>
@@ -19,7 +19,7 @@ typedef struct node
 	struct node	*r;
 }				node;
 
-node *parse_addition(char **str);
+node	*parse_addition(char **str);
 node	*new_node(node n);
 void	destroy_tree(node *n);
 void	unexpected(char c);

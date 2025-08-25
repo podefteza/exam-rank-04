@@ -1,4 +1,4 @@
-#include "vbc_new.h"
+#include "vbc.h"
 
 node	*parse_number_or_group(char **str)
 {
@@ -99,15 +99,14 @@ int	is_balanced(char *str)
 
 int	main(int argc, char **argv)
 {
-	node	*tree;
-
 	if (argc != 2)
 		return (1);
-	if (!is_balanced(argv[1]))
+	if (!is_balanced(argv[1])) // added check for parenthesis
 		return (printf("Unexpected token ')'\n"), 1);
-	tree = parse_addition(&argv[1]);
+	node *tree = parse_addition(&argv[1]); // pass &argv[1] to parse_addition
 	if (!tree)
 		return (1);
 	printf("%d\n", eval_tree(tree));
 	destroy_tree(tree);
+	return (0); // added return success
 }
