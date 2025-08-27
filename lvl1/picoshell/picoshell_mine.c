@@ -46,21 +46,19 @@ int	picoshell(char **cmds[])
 			return(close_fd(fd_stdin), close_fd(fd[0]), close_fd(fd[1]), 1);
 		if (pid == 0)
 		{
-			if (fd_stdin != 0)
+			if (fd_stdin != 0) // if it's not the FIRST command in the pipeline...
 				if (dup2(fd_stdin, 0) == -1) // connect previous command's output to this command's STDIN
 					exit(1);
-			if (fd[1] != -1)
+			if (fd[1] != -1) // if it's not the LAST command in the pipeline...
 				if (dup2(fd[1], 1) == -1) // connect this command's STDOUT to the pipe for next command
 					exit(1);
-			close(fd_stdin); // close all FDs (child doesn't need them after dup2)
-			close_fd(fd[0]);
-			close_fd(fd[1]);
+			close(fd_stdin), close_fd(fd[0]), close_fd(fd[1]); // close all FDs (child doesn't need them after dup2)
 			execvp(cmds[i][0], cmds[i]);
 			exit(1);
 		}
-		if (fd_stdin != 0)
+		if (fd_stdin != 0) // if it's not the FIRST command in the pipeline...
 			close(fd_stdin); // close previous input, no longer needed
-		close_fd(fd[1]); // close write end (child uses it)
+		close_fd(fd[1]); // close write end (parent doesn't need it, child inherited it)
 		fd_stdin = fd[0]; // pass the read end to next iteration as STDIN source
 		i++;
 	}
@@ -70,11 +68,11 @@ int	picoshell(char **cmds[])
 	return (0);
 }
 
-/*int main()
+int main()
 {
 	char *cmd1[] = {"ls", "-la", NULL};
 	char *cmd2[] = {"grep", "picoshell", NULL};
 	char **cmds[] = {cmd1, cmd2, NULL};
 
 	return(picoshell(cmds));
-}*/
+}
