@@ -1,6 +1,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <sys/types.h>
 
 int ft_popen(const char *file, char *const argv[], char type)
@@ -14,7 +15,7 @@ int ft_popen(const char *file, char *const argv[], char type)
 	if (pipe(fd) < 0)
 		return (-1);
 
-	pid = fork;
+	pid = fork();
 	if (pid < 0)
 		return (close(fd[0]), close(fd[1]), -1);
 
@@ -32,9 +33,30 @@ int ft_popen(const char *file, char *const argv[], char type)
 		exit(1);
 	}
 	if (type == 'r')
-		return (close(fd[1]), 0); // ❌ fd[0]) ⚠️
-	return (close(fd[0]), 1); // ❌ fd[1]) ⚠️
+		return (close(fd[1]), fd[0]); // ❌ fd[0]) ⚠️
+	return (close(fd[0]), fd[1]); // ❌ fd[1]) ⚠️
 }
+
+//test type 'r'
+/*int	main()
+{
+	int fd = ft_popen("ls", (char *const[]){"ls", "-l", NULL}, 'r');
+	char buf[1];
+	while (read(fd, buf, 1))
+		write(1, buf, 1);
+	close(fd);
+	return (0);
+}*/
+
+//test type 'w'
+/*int main()
+{
+	int fd = ft_popen("wc", (char *const[]){"wc", "-w", NULL}, 'w');
+	char *input = "Hello world\nThis is a test\nthird line mofo\n";
+	write(fd, input, strlen(input));
+	close(fd);
+	return (0);
+}*/
 
 /*Assignment name  : ft_popen
 Expected files   : ft_popen.c
