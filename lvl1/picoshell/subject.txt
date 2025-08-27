@@ -27,3 +27,13 @@ Examples:
 picoshell
 ./picoshell echo 'squalala' "|" cat "|" sed 's/a/b/g'
 squblblb
+
+
+int main()
+{
+	char *cmd1[] = {"ls", "-la", NULL};
+	char *cmd2[] = {"wc", NULL};
+	char **cmds[] = {cmd1, cmd2, NULL};
+
+	return(picoshell(cmds));
+}

@@ -43,7 +43,7 @@ int	picoshell(char **cmds[])
 			fd[0] = fd[1] = -1;
 		pid = fork();
 		if (pid == -1) // cleanup on fork fail
-			return(close_fd(fd_stdin), close_fd(fd[0]), close_fd(fd[1]), 1);
+			return(close(fd_stdin), close_fd(fd[0]), close_fd(fd[1]), 1);
 		if (pid == 0)
 		{
 			if (fd_stdin != 0) // if it's not the FIRST command in the pipeline...
@@ -63,7 +63,7 @@ int	picoshell(char **cmds[])
 		i++;
 	}
 	while (wait(&status) > 0) // wait for all children
-		if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) // check if any failed
+		if (!WIFEXITED(status) || WEXITSTATUS(status)) // check if any failed
 			return (1);
 	return (0);
 }
