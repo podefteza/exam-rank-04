@@ -1,159 +1,124 @@
 #include "vbc.h"
-/*
- * Use the given functions as helpers:
- * node	*new_node(node n);
- * void	destroy_tree(node *n);
- * void	unexpected(char c) //printf("Unexpected end of file\n"); // change "file" -> "input"
- * int	eval_tree(node *tree) // return (0); // added this at the end
- */
 
-/*
- * LOWEST PRECEDENCE: Parse numbers and parenthesized groups
- * This is the bottom of our precedence hierarchy
- * Handles: single digits (0-9) and expressions in parentheses
- */
-node	*parse_number_or_group(char **str)
+int g_error = 0; // Define the global variable
+char *g_str = NULL; // Global string pointer for parsing
+int g_i = 0; // Global index for current position
+
+node	*parse_number_or_group(void)
 {
 	node	*res;
 	node	box;
 
 	res = NULL;
-	if (**str == '(') // Found opening parenthesis
+	if (g_str[g_i] == '(')
 	{
-		(*str)++; // Skip '('
-		res = parse_addition(str); // Recursively parse the content inside parentheses
-		if (!res || **str != ')') // Check for matching closing parenthesis
+		g_i++;
+		res = parse_addition();
+		if (!res || g_str[g_i] != ')')
 		{
 			destroy_tree(res);
-			unexpected(**str);
+			unexpected(g_str[g_i]);
 			return (NULL);
 		}
-		(*str)++; // Skip ')'
+		g_i++;
 		return (res);
 	}
-	if (isdigit(**str)) // Found a single digit
+	if (isdigit(g_str[g_i]))
 	{
-		box.type = VAL; // Create value node
-		box.val = **str - '0'; // Convert char to int
+		box.type = VAL;
+		box.val = g_str[g_i] - '0';
 		res = new_node(box);
-		(*str)++; // Move to next character
+		g_i++;
 		return (res);
 	}
-	unexpected(**str); // Invalid character encountered
+	unexpected(g_str[g_i]);
 	return (NULL);
 }
 
-/*
- * MEDIUM PRECEDENCE: Parse multiplication operations
- * Handles: sequences like "2*3*4" (left-associative)
- * Calls parse_number_or_group for operands
- */
-node	*parse_multiplication(char **str)
+node	*parse_multiplication(void)
 {
-	node	*left;
-	node	*right;
+	node	*left, *right;
 	node	box;
 
-	left = parse_number_or_group(str); // Parse first operand (number or parentheses)
+	left = parse_number_or_group();
 	if (!left)
 		return (NULL);
-	while (**str == '*') // Continue while we find multiplication operators
+	while (g_str[g_i] == '*')
 	{
-		(*str)++; // Skip '*'
-		right = parse_number_or_group(str); // Parse next operand
+		g_i++;
+		right = parse_number_or_group();
 		if (!right)
 			return (destroy_tree(left), NULL);
-		// Create new multiplication node with left and right children
 		box.l = left;
 		box.r = right;
 		box.type = MULTI;
-		left = new_node(box); // This becomes the new left operand for next iteration
+		left = new_node(box);
 	}
-	return (left); // Return the complete multiplication subtree
+	return (left);
 }
 
-/*
- * HIGHEST PRECEDENCE: Parse addition operations
- * Handles: sequences like "1+2+3" (left-associative)
- * Calls parse_multiplication for operands (respecting operator precedence)
- * This is the entry point for parsing expressions
- */
-node	*parse_addition(char **str)
+node	*parse_addition(void)
 {
-	node	*left;
-	node	*right;
+	node	*left, *right;
 	node	box;
 
-	left = parse_multiplication(str); // Parse first operand (could be multiplication)
+	left = parse_multiplication();
 	if (!left)
 		return (NULL);
-	while (**str == '+') // Continue while we find addition operators
+	while (g_str[g_i] == '+')
 	{
-		(*str)++; // Skip '+'
-		right = parse_multiplication(str); // Parse next operand (respects * precedence)
+		g_i++;
+		right = parse_multiplication();
 		if (!right)
 			return (destroy_tree(left), NULL);
-		// Create new addition node with left and right children
 		box.l = left;
 		box.r = right;
 		box.type = ADD;
-		left = new_node(box); // This becomes the new left operand for next iteration
+		left = new_node(box);
 	}
-	return (left); // Return the complete expression tree
+	return (left);
 }
 
-/*
- * VALIDATION: Check if parentheses are balanced in the input string
- * Returns 1 if balanced, 0 if unbalanced
- * This prevents parsing invalid expressions like "((1+2)" or "1+2))"
- */
-int	is_balanced(char *str)
+int is_balanced(char *str)
 {
-	int	balanced = 0; // Counter for open parentheses
+	int balanced = 0;
 	int i = 0;
 
-	while (str[i])
+	while(str[i])
 	{
 		if (str[i] == '(')
-			balanced++; // Increment for each opening parenthesis
+			balanced++;
 		else if (str[i] == ')')
 		{
-			if (!balanced) // Found ')' without matching '('
-				return (0);
-			balanced--; // Decrement for each closing parenthesis
+			if (!balanced)
+				return (unexpected(')'), 0);
+			balanced--;
 		}
 		i++;
 	}
-	return (balanced == 0); // Should be 0 if all parentheses are matched
+	if (balanced > 0)
+		return (unexpected(')'), 0);
+	return (1);
 }
 
-/*
- * MAIN FUNCTION: Entry point for the Very Basic Calculator
- *
- * FLOW:
- * 1. Validate command line arguments
- * 2. Check parentheses balance
- * 3. Parse expression into Abstract Syntax Tree (AST)
- * 4. Evaluate the AST and print result
- * 5. Clean up memory
- */
 int	main(int argc, char **argv)
 {
-	if (argc != 2) // Expect exactly one expression argument
+	if (argc != 2)
 		return (1);
-	if (!is_balanced(argv[1])) // Check parentheses balance first
-		return (printf("Unexpected token ')'\n"), 1);
-
-	// Parse the expression into an Abstract Syntax Tree
-	// argv[1] is passed by reference so parser can advance through string
-	node *tree = parse_addition(&argv[1]); // Start with highest precedence parser
-	if (!tree) // Parsing failed (syntax error)
+	if (!is_balanced(argv[1]))
 		return (1);
-
-	// Evaluate the AST and print result
+	g_str = argv[1]; // Initialize global string pointer
+	g_i = 0; // Initialize global index
+	node *tree = parse_addition();
+	if (!tree || g_error)
+		return (1);
+	if (g_str[g_i]) // Check if entire string was consumed
+	{
+		unexpected(g_str[g_i]);
+		destroy_tree(tree);
+		return (1);
+	}
 	printf("%d\n", eval_tree(tree));
-
-	// Clean up allocated memory
 	destroy_tree(tree);
-	return (0); // Success
+	return (0);
 }

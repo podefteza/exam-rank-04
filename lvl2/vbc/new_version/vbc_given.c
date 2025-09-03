@@ -1,5 +1,7 @@
 #include "vbc.h"
 
+extern int g_error;
+
 node	*new_node(node n)
 {
 	node	*ret;
@@ -25,11 +27,12 @@ void	destroy_tree(node *n)
 
 void	unexpected(char c)
 {
-	if (c)
+	if (c && !g_error)
 		printf("Unexpected token '%c'\n", c);
-	else
+	else if (!g_error)
 		printf("Unexpected end of input\n");
 		//printf("Unexpected end of file\n"); // change "file" -> "input"
+	g_error = 1;
 }
 
 int	eval_tree(node *tree)

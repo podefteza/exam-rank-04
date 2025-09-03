@@ -3,7 +3,7 @@
 
 /* TODO - VBC Flow:
 * - validate input (argc == 2)
-* - initialize global string pointer
+* - initialize global string pointer and index
 * - parse_expr(): handle addition (lowest precedence)
 *		- parse first term
 *		- while '+': skip operator, parse next term, accumulate result
@@ -14,35 +14,36 @@
 *		- if '(': skip '(', recursively parse expression, expect ')', skip ')'
 *		- else: parse single digit number
 * - parse_number(): validate and convert single digit
-*		- check if current char is digit, convert to int, advance pointer
+*		- check if current char is digit, convert to int, advance index
 * - error handling:
 *		- parsing functions report errors immediately when encountered
-*		- main() only reports leftover characters after successful parsing
+*		- main() reports leftover characters after successful parsing
 * - return result or error code
 */
 
 int		parse_factor(void);
 int		parse_expr(void);
 
-char *g_str; // Global pointer tracking current position in input string
+char *g_str; // Global pointer to input string (unchanged)
+int g_i = 0; // Global index for current position
 
 void	unexpected(char c)
 {
 	if (c)
 		printf("Unexpected token '%c'\n", c);
 	else
-		printf("Unexpected end of input\n"); // from the given code, just change "file" to "input"
+		printf("Unexpected end of input\n");
 
 }
 
 int	parse_number(void)
 {
-	if (!*g_str || !isdigit(*g_str)) // Check if current character is a valid digit
+	if (!g_str[g_i] || !isdigit(g_str[g_i])) // Check if current character is a valid digit
 	{
-		unexpected(*g_str);
+		unexpected(g_str[g_i]);
 		return (-1);
 	}
-	return (*g_str++ - '0'); // Convert char to int and advance pointer in one operation
+	return (g_str[g_i++] - '0'); // Convert char to int and advance index
 }
 
 // Parse highest precedence: numbers and parentheses
@@ -50,18 +51,18 @@ int	parse_factor(void)
 {
 	int	result;
 
-	if (*g_str == '(') // Handle parentheses: (expression)
+	if (g_str[g_i] == '(') // Handle parentheses: (expression)
 	{
-		g_str++; // Skip opening '('
+		g_i++; // Skip opening '('
 		result = parse_expr(); // Recursively parse the expression inside parentheses
 		if (result == -1)
 			return (-1);
-		if (*g_str != ')') // Expect closing ')'
+		if (g_str[g_i] != ')') // Expect closing ')'
 		{
-			unexpected(*g_str);
+			unexpected(g_str[g_i]);
 			return (-1);
 		}
-		g_str++; // Skip closing ')'
+		g_i++; // Skip closing ')'
 		return (result);
 	}
 	return (parse_number()); // If not parentheses, must be a number
@@ -76,9 +77,9 @@ int	parse_term(void)
 	left = parse_factor(); // Start with first factor
 	if (left == -1)
 		return (-1);
-	while (*g_str == '*') // Handle chain of multiplications: factor * factor * factor...
+	while (g_str[g_i] == '*') // Handle chain of multiplications
 	{
-		g_str++; // Skip '*' operator
+		g_i++; // Skip '*' operator
 		right = parse_factor(); // Get next factor
 		if (right == -1)
 			return (-1);
@@ -96,9 +97,9 @@ int	parse_expr(void)
 	left = parse_term(); // Start with first term
 	if (left == -1)
 		return (-1);
-	while (*g_str == '+') // Handle chain of additions: term + term + term...
+	while (g_str[g_i] == '+') // Handle chain of additions
 	{
-		g_str++; // Skip '+' operator
+		g_i++; // Skip '+' operator
 		right = parse_term(); // Get next term
 		if (right == -1)
 			return (-1);
@@ -113,13 +114,14 @@ int	main(int argc, char **argv)
 
 	if (argc != 2) // Validate command line arguments
 		return (1);
-	g_str = argv[1]; // Initialize global pointer to start of input string
+	g_str = argv[1]; // Initialize global pointer to input string
+	g_i = 0; // Initialize global index to start position
 	result = parse_expr(); // Parse the entire expression (starts at lowest precedence)
 	if (result == -1) // Error during parsing - already reported
 		return (1);
-	if (*g_str) // Parsing succeeded but leftover characters remain
+	if (g_str[g_i]) // Parsing succeeded but leftover characters remain
 	{
-		unexpected(*g_str);
+		unexpected(g_str[g_i]);
 		return (1);
 	}
 	printf("%d\n", result); // Success: print result

@@ -5,6 +5,10 @@
 # include <malloc.h>
 # include <stdio.h>
 
+extern int g_error;
+extern char *g_str; // Global string pointer for parsing
+extern int g_i; // Global index for current position
+
 // no changes
 typedef struct node
 {
@@ -19,7 +23,7 @@ typedef struct node
 	struct node	*r;
 }				node;
 
-node	*parse_addition(char **str);
+node	*parse_addition(void);
 node	*new_node(node n);
 void	destroy_tree(node *n);
 void	unexpected(char c);
