@@ -120,8 +120,9 @@ int main(int argc, char **argv)
 		unexpected(str[i]);
 		return (1);
 	}
-	if (!error)
-		printf("%d\n", result);
+	if (error) // check if any error occurred during parsing
+		return (1);
+	printf("%d\n", result);
 	return (0);
 }
 
