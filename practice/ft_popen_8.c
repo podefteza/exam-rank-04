@@ -1,9 +1,8 @@
-#include <unistd.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <stdlib.h>
-#include <sys/types.h>
 
-int	ft_popen(const char *file, char *const argv[], char type)
+int ft_popen(const char *file, char *const argv[], char type)
 {
 	int fd[2];
 	pid_t pid;
@@ -15,6 +14,7 @@ int	ft_popen(const char *file, char *const argv[], char type)
 		return (-1);
 
 	pid = fork();
+
 	if (pid < 0)
 		return (close(fd[0]), close(fd[1]), -1);
 
@@ -30,6 +30,7 @@ int	ft_popen(const char *file, char *const argv[], char type)
 		execvp(file, argv);
 		exit (1);
 	}
+
 	if (type == 'r')
 		return (close(fd[1]), fd[0]);
 	return (close(fd[0]), fd[1]);

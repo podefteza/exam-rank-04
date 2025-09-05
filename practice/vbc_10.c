@@ -6,9 +6,7 @@ int i = 0;
 int error = 0;
 char *str = NULL;
 
-int parse_add();
-
-void	unexpected(char c)
+void    unexpected(char c)
 {
 	if (c && !error)
 		printf("Unexpected token '%c'\n", c);
@@ -17,10 +15,15 @@ void	unexpected(char c)
 	error = 1;
 }
 
+int parse_add();
+
 int parse_nb()
 {
-	if (!str || !isdigit(str[i]))
-		return (unexpected(str[i]), -1);
+	if (!str[i] || !isdigit(str[i]))
+	{
+		unexpected(str[i]);
+		return (-1);
+	}
 	return (str[i++] - '0');
 }
 
@@ -35,7 +38,10 @@ int parse_group()
 		if (result < 0)
 			return (-1);
 		if (str[i] != ')')
-			return (unexpected(str[i]), -1);
+		{
+			unexpected(str[i]);
+			return (-1);
+		}
 		i++;
 		return (result);
 	}
@@ -58,7 +64,7 @@ int parse_multi()
 			return (-1);
 		left *= right;
 	}
-	return(left);
+	return (left);
 }
 
 int parse_add()
@@ -74,12 +80,10 @@ int parse_add()
 		i++;
 		right = parse_multi();
 		if (right < 0)
-		{
 			return (-1);
-		}
-		left = left + right;
+		left += right;
 	}
-	return(left);
+	return (left);
 }
 
 int is_balanced()
@@ -100,8 +104,11 @@ int is_balanced()
 		}
 		j++;
 	}
-	if (balance != 0)
-		return (unexpected('(')), 0;
+	if (balance > 0)
+	{
+		unexpected('(');
+		return (0);
+	}
 	return (1);
 }
 
@@ -116,7 +123,10 @@ int main(int argc, char **argv)
 	int result = 0;
 	result = parse_add();
 	if (str[i])
-		return(unexpected(str[i]), 1);
+	{
+		unexpected(str[i]);
+		return (1);
+	}
 	if (!error && result >= 0)
 	{
 		printf("%d\n", result);

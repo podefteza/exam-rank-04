@@ -57,14 +57,14 @@ int	picoshell(char **cmds[])
 	return (0);
 }
 
-int main()
+/*int main()
 {
 	char *cmd1[] = {"ls", "-la", NULL};
 	char *cmd2[] = {"wc", NULL};
 	char **cmds[] = {cmd1, cmd2, NULL};
 
 	return(picoshell(cmds));
-}
+}*/
 
 /*Assignment name:	picoshell
 Expected files:		picoshell.c
@@ -105,4 +105,4 @@ int main()
 
 	return(picoshell(cmds));
 }
-
+*/

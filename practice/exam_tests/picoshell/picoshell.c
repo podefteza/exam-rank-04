@@ -1,7 +1,7 @@
-#include <stdio.h>
 #include <unistd.h>
-#include <stdlib.h>
+#include <stdio.h>
 #include <sys/wait.h>
+#include <stdlib.h>
 
 void close_fd(int fd)
 {
@@ -11,8 +11,8 @@ void close_fd(int fd)
 
 int	picoshell(char **cmds[])
 {
-	int status = 0;
 	int i = 0;
+	int status = 0;
 	int fd_stdin = 0;
 	int fd[2];
 	pid_t pid;
@@ -23,13 +23,12 @@ int	picoshell(char **cmds[])
 	while (cmds[i])
 	{
 		if (cmds[i + 1] && pipe(fd) < 0)
-			return (1);
+			return (close(fd_stdin), 1); // need to close fd_stdin?
 
 		if (!cmds[i + 1])
 			fd[0] = fd[1] = -1;
 
 		pid = fork();
-
 		if (pid < 0)
 			return (close_fd(fd[0]), close_fd(fd[1]), close(fd_stdin), 1);
 
@@ -43,11 +42,11 @@ int	picoshell(char **cmds[])
 					exit (1);
 			close_fd(fd[0]), close_fd(fd[1]);
 			execvp(cmds[i][0], cmds[i]);
-			exit (1);
+			exit(1);
 		}
 		if (fd_stdin != 0)
 			close(fd_stdin);
-		close_fd(fd[1]);
+		close(fd[1]);
 		fd_stdin = fd[0];
 		i++;
 	}
@@ -57,14 +56,26 @@ int	picoshell(char **cmds[])
 	return (0);
 }
 
-/*int main()
-{
-	char *cmd1[] = {"ls", "-la", NULL};
-	char *cmd2[] = {"wc", NULL};
-	char **cmds[] = {cmd1, cmd2, NULL};
 
-	return(picoshell(cmds));
-}*/
+/*   char *cmd_slow1[] = {"echo", "slow test", NULL};
+    char *cmd_slow2[] = {"sleep", "0.1", NULL};  // Very short sleep
+    char *cmd_slow3[] = {"echo", "completed", NULL};
+    char **cmds_slow[] = {cmd_slow1, cmd_slow2, cmd_slow3, NULL};*/
+
+
+int main()
+{
+	/*char *cmd1[] = {"ls", "-la", NULL};
+	char *cmd2[] = {"wc", NULL};
+	char **cmds[] = {cmd1, cmd2, NULL};*/
+
+	char *cmd_slow1[] = {"echo", "slow test", NULL};
+    char *cmd_slow2[] = {"cat", NULL};  // Very short sleep
+    char *cmd_slow3[] = {"echo", "completed", NULL};
+    char **cmds_slow[] = {cmd_slow1, cmd_slow2, cmd_slow3, NULL};
+
+	return(picoshell(cmds_slow));
+}
 
 /*Assignment name:	picoshell
 Expected files:		picoshell.c
