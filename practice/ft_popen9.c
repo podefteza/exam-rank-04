@@ -1,9 +1,9 @@
-#include <stdio.h>
 #include <unistd.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
 
-int ft_popen(const char *file, char *const argv[], char type)
+int	ft_popen(const char *file, char *const argv[], char type)
 {
 	int fd[2];
 	pid_t pid;
@@ -34,7 +34,6 @@ int ft_popen(const char *file, char *const argv[], char type)
 		return (close(fd[1]), fd[0]);
 	return (close(fd[0]), fd[1]);
 }
-
 
 /*Assignment name  : ft_popen
 Expected files   : ft_popen.c

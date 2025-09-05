@@ -160,14 +160,22 @@ void test_invalid_commands_and_hangs() {
     printf("Mixed pipeline result: %d %s\n", result, result == 1 ? "✅" : "❌");
 
     // Test with command that would normally hang (but we'll use timeout in shell script)
-    printf("--- Testing with potentially slow command ---\n");
+    printf("--- Testing with multi-stage pipeline ---\n");
     char *cmd_slow1[] = {"echo", "slow test", NULL};
-    char *cmd_slow2[] = {"sleep", "0.1", NULL};  // Very short sleep
-    char *cmd_slow3[] = {"echo", "completed", NULL};
+    char *cmd_slow2[] = {"cat", NULL};  // Pass through the input
+    char *cmd_slow3[] = {"cat", NULL};  // Another pass through
     char **cmds_slow[] = {cmd_slow1, cmd_slow2, cmd_slow3, NULL};
 
     result = picoshell(cmds_slow);
-    printf("Slow pipeline result: %d %s\n", result, result == 0 ? "✅" : "❌");
+    printf("Multi-stage pipeline result: %d %s\n", result, result == 0 ? "✅" : "❌");
+
+    // Test with actual slow command (single command that sleeps)
+    printf("--- Testing with actual slow command (single sleep) ---\n");
+    char *cmd_sleep[] = {"sleep", "0.1", NULL};  // Single sleep command
+    char **cmds_sleep[] = {cmd_sleep, NULL};
+
+    result = picoshell(cmds_sleep);
+    printf("Sleep command result: %d %s\n", result, result == 0 ? "✅" : "❌");
 
     // Test with command that produces no output
     printf("--- Testing with command that produces no output ---\n");

@@ -35,7 +35,8 @@ int	picoshell(char **cmds[])
 				exit(1);
 			if (fd[1] != -1 && dup2(fd[1], STDOUT_FILENO) == -1)
 				exit(1);
-			close(in);
+			if (in != 0)
+				close(in);
 			if (fd[0] != -1)
 				close(fd[0]);
 			if (fd[1] != -1)

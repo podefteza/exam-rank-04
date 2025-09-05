@@ -19,7 +19,7 @@ void	unexpected(char c)
 
 int parse_nb()
 {
-	if (!str[i] || !isdigit(str[i]))
+	if (!str || !isdigit(str[i]))
 		return (unexpected(str[i]), -1);
 	return (str[i++] - '0');
 }
@@ -28,13 +28,13 @@ int parse_group()
 {
 	int result = 0;
 
-	if (str[i] == ('('))
+	if (str[i] == '(')
 	{
 		i++;
 		result = parse_add();
 		if (result < 0)
 			return (-1);
-		if (str[i] != (')'))
+		if (str[i] != ')')
 			return (unexpected(str[i]), -1);
 		i++;
 		return (result);
@@ -49,7 +49,7 @@ int parse_multi()
 
 	left = parse_group();
 	if (left < 0)
-		return(-1);
+		return (-1);
 	while (str[i] == '*')
 	{
 		i++;
@@ -58,7 +58,7 @@ int parse_multi()
 			return (-1);
 		left *= right;
 	}
-	return (left);
+	return(left);
 }
 
 int parse_add()
@@ -68,35 +68,40 @@ int parse_add()
 
 	left = parse_multi();
 	if (left < 0)
-		return(-1);
+		return (-1);
 	while (str[i] == '+')
 	{
 		i++;
 		right = parse_multi();
 		if (right < 0)
+		{
 			return (-1);
-		left += right;
+		}
+		left = left + right;
 	}
-	return (left);
+	return(left);
 }
 
 int is_balanced()
 {
-	int k = 0;
+	int j = 0;
 	int balance = 0;
 
-	while (str[k])
+	while (str[j])
 	{
-		if (str[k] == '(')
+		if (str[j] == '(')
 			balance++;
-		else if (str[k] == ')')
+		else if (str[j] == ')')
 			balance--;
 		if (balance < 0)
-			return (unexpected(')'), 0);
-		k++;
+		{
+			unexpected(')');
+			return (0);
+		}
+		j++;
 	}
-	if (balance > 0)
-		return (unexpected('('), 0);
+	if (balance != 0)
+		return (unexpected('(')), 0;
 	return (1);
 }
 
@@ -108,10 +113,11 @@ int main(int argc, char **argv)
 	str = argv[1];
 	if (!is_balanced())
 		return (1);
-	int result = parse_add();
+	int result = 0;
+	result = parse_add();
 	if (str[i])
 		return(unexpected(str[i]), 1);
-	if (result >= 0 && !error)
+	if (!error && result >= 0)
 	{
 		printf("%d\n", result);
 		return (0);
