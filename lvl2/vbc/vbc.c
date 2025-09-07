@@ -1,217 +1,189 @@
-#include "vbc.h"
+#include <stdio.h>
+#include <malloc.h>
+#include <ctype.h>
 
-// no changes
-node	*new_node(node n)
-{
-	node	*ret;
+int i = 0;
+int error = 0;
+char *str = NULL;
 
-	ret = calloc(1, sizeof(n));
-	if (!ret)
-		return (NULL);
-	*ret = n;
-	return (ret);
-}
-
-// no changes
-void	destroy_tree(node *n)
-{
-	if (!n)
-		return ;
-	if (n->type != VAL)
-	{
-		destroy_tree(n->l);
-		destroy_tree(n->r);
-	}
-	free(n);
-}
+int parse_add();
 
 void	unexpected(char c)
 {
-	if (c)
+	if (c && !error)
 		printf("Unexpected token '%c'\n", c);
-	else
-		// printf("Unexpected end of file\n");
+	else if (!error)
 		printf("Unexpected end of input\n");
+	error = 1; // set of error so it does not duplicate the print if more errors were found
 }
 
-int	eval_tree(node *tree)
+int parse_nb()
 {
-	switch (tree->type)
+	if (!str[i] || !isdigit(str[i]))
 	{
-	case ADD:
-		return (eval_tree(tree->l) + eval_tree(tree->r));
-	case MULTI:
-		return (eval_tree(tree->l) * eval_tree(tree->r));
-	case VAL:
-		return (tree->val);
+		unexpected(str[i]);
+		return (-1);
 	}
-	return (0); // added this
+	return (str[i++] - '0');
 }
 
-int	check_parentheses(char *str)
+int parse_group()
 {
-	int	balance;
-	int	i;
+	int result = 0;
 
-	balance = 0;
-	i = -1;
-	while (str[++i])
+	if (str[i] == '(') // group of numbers or operations inside parenthisis
 	{
-		if (str[i] == '(')
+		i++; // increment to the first one
+		result = parse_add(); // recusively calls to calculate result
+		if (result < 0)
+			return (-1);
+		if (str[i] != ')') // validate closing parenthesis after parsing expression inside
+		{
+			unexpected(str[i]);
+			return (-1);
+		}
+		i++; // increment to get out of the nested operation
+		return (result); // returns the result of the nested operation
+	}
+	return (parse_nb()); // if not, it's just a digit
+}
+
+int parse_multi()
+{
+	int left = 0;
+	int right = 0;
+
+	left = parse_group();
+	if (left < 0)
+		return (-1);
+	while (str[i] == '*')
+	{
+		i++;
+		right = parse_group();
+		if (right < 0)
+			return (-1);
+		left *= right;
+	}
+	return (left);
+}
+
+int parse_add()
+{
+	int left = 0;
+	int right = 0;
+
+	left = parse_multi();
+	if (left < 0)
+		return (-1);
+	while (str[i] == '+')
+	{
+		i++;
+		right = parse_multi();
+		if (right < 0)
+			return (-1);
+		left += right;
+	}
+	return (left);
+}
+
+int validate_chars()
+{
+	int j = 0;
+
+	while (str[j])
+	{
+		char c = str[j];
+
+		if (!isdigit(c) && c != '+' && c != '*' && c != ')')
+			return (unexpected(c), 0);
+		if (isdigit(c) && isdigit(str[j + 1]))
+			return (unexpected(str[j + 1]), 0);
+		j++;
+	}
+	return (1);
+}
+
+int is_balanced()
+{
+	int j = 0;
+	int balance = 0;
+
+	while (str[j])
+	{
+		if (str[j] == '(')
 			balance++;
-		else if (str[i] == ')')
-		{
+		else if (str[j] == ')')
 			balance--;
-			if (balance < 0)
-				return (-1);
-		}
+		if (balance < 0)
+			return (unexpected(')'), 0);
+		j++;
 	}
-	return (balance);
+	if (balance > 0)
+			return (unexpected('('), 0);
+	return (1);
 }
 
-node	*parse_mult(char **str)
+int main(int argc, char **argv)
 {
-	node	*l;
-	node	*r;
-	node	temp;
-
-	l = parse_nb_or_group(str);
-	if (!l)
-		return (NULL);
-	while (**str == '*')
-	{
-		(*str)++;
-		r = parse_nb_or_group(str);
-		if (!r)
-		{
-			destroy_tree(l);
-			return (NULL);
-		}
-		temp.type = MULTI;
-		temp.l = l;
-		temp.r = r;
-		l = new_node(temp);
-		if (!l)
-		{
-			destroy_tree(r);
-			return (NULL);
-		}
-	}
-	return (l);
-}
-
-node	*parse_add(char **str)
-{
-	node	*l;
-	node	*r;
-	node	temp;
-
-	l = parse_mult(str);
-	if (!l)
-		return (NULL);
-	while (**str == '+')
-	{
-		(*str)++;
-		r = parse_mult(str);
-		if (!r)
-		{
-			destroy_tree(l);
-			return (NULL);
-		}
-		temp.type = ADD;
-		temp.l = l;
-		temp.r = r;
-		l = new_node(temp);
-		if (!l)
-		{
-			destroy_tree(r);
-			return (NULL);
-		}
-	}
-	return (l);
-}
-
-node	*parse_nb_or_group(char **str)
-{
-	node	*res;
-	node	temp;
-
-	res = NULL;
-	if (**str == '(')
-	{
-		(*str)++;
-		res = parse_add(str);
-		if (!res || **str != ')')
-		{
-			destroy_tree(res);
-			unexpected(**str);
-			return (NULL);
-		}
-		(*str)++;
-		return (res);
-	}
-	if (isdigit(**str))
-	{
-		temp.type = VAL;
-		temp.val = (**str) - '0';
-		res = new_node(temp);
-		if (!res)
-			return (NULL);
-		(*str)++;
-		return (res);
-	}
-	unexpected(**str);
-	return (NULL);
-}
-
-int	check_consecutive_digits(char *input)
-{
-	int	i;
-
-	i = -1;
-	while (input[++i])
-	{
-		if (isdigit(input[i]) && isdigit(input[i + 1]))
-		{
-			unexpected(input[i + 1]);
-			return (1);
-		}
-	}
-	return (0);
-}
-
-int	main(int argc, char **argv)
-{
-	node	*tree;
-	char	*input;
-	int		paren_check;
-
 	if (argc != 2)
 		return (1);
-	input = argv[1];
-	if (check_consecutive_digits(input))
+	i = 0;
+	str = argv[1];
+	if (!validate_chars())	// check for invalid characters first. this needs to be before checking parentheses!
 		return (1);
-	paren_check = check_parentheses(input);
-	if (paren_check < 0)
+	if (!is_balanced())		// then check parentheses balance
+		return (1);
+	int result = parse_add();
+	if (str[i]) // check for leftover characters
 	{
-		unexpected(')');
+		unexpected(str[i]);
 		return (1);
 	}
-	else if (paren_check > 0)
-	{
-		unexpected('(');
+	if (error) // check if any error occurred during parsing
 		return (1);
-	}
-	tree = parse_add(&input);
-	if (!tree)
-		return (1);
-	if (*input)
-	{
-		unexpected(*input);
-		destroy_tree(tree);
-		return (1);
-	}
-	printf("%d\n", eval_tree(tree));
-	destroy_tree(tree);
+	printf("%d\n", result);
 	return (0);
 }
+
+/*Assignment name : vbc
+Expected files : *.c *.h
+Allowed functions: malloc, calloc, realloc, free, printf, isdigit, write
+
+Write a program that prints the result of a mathematical expression given as argument.
+
+It must handle addition (+), multiplication (*), and parentheses.
+All values are single digits between 0 and 9 (inclusive).
+Error handling:
+
+In case of an unexpected symbol, you must print:
+"Unexpected token '%c'\n"
+If the expression ends unexpectedly, you must print:
+"Unexpected end of input\n"
+The same rule applies if you find an unexpected '(' or ')'.
+In case of a syscall failure, you must exit with status code 1.
+Examples:
+
+./vbc '1' | cat -e
+out: 1$
+
+./vbc '2+3' | cat -e
+out: 5$
+
+./vbc '3*4+5' | cat -e
+out: 17$
+
+./vbc '3+4*5' | cat -e
+out: 23$
+
+./vbc '(3+4)*5' | cat -e
+out: 35$
+
+./vbc '(((((2+2)*2+2)*2+2)*2+2)*2+2)*2' | cat -e
+out: 188$
+
+./vbc '1+'
+out: Unexpected end of input
+
+./vbc '1+2)' | cat -e
+out: Unexpected token ')'
+File provided: vbc.c*/
